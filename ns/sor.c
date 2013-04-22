@@ -32,7 +32,9 @@ void sor(
     }
   }
   rloc = rloc/(imax*jmax);
-  rloc = sqrt(rloc);
+  // problems with sqrt() possible: -lm
+  // rloc = sqrt(rloc);
+
   /* set residual */
   *res = rloc;
 

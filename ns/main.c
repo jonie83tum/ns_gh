@@ -3,7 +3,6 @@
 #include "init.h"
 #include <stdio.h>
 
-
 /**
  * The main operation reads the configuration file, initializes the scenario and
  * contains the main loop. So here are the individual steps of the algorithm:
@@ -37,7 +36,38 @@
  *   iteration loop the operation sor() is used.
  * - calculate_uv() Calculate the velocity at the next time step.
  */
-int main(int argn, char** args){
-  return -1;
+int main(int argn, char** args) {
 
+	double UI, VI, PI, Re, GX, GY, t_end, xlength, ylength, dt, dx, dy, alpha,
+			omg, tau, eps, dt_value;
+	int imax, jmax, itermax, i, j;
+	double **U, **V, **P;
+	const char *szFileName = args[1];
+	int nrl, nrh, ncl, nch;
+
+
+	read_parameters(szFileName, &Re, &UI, &VI, &PI, &GX, &GY, &t_end, &xlength,
+			&ylength, &dt, &dx, &dy, &imax, &jmax, &alpha, &omg, &tau, &itermax,
+			&eps, &dt_value);
+
+	nrl = 0;
+	nrh = imax+1;
+	ncl = 0;
+	nch = jmax+1;
+
+	U = matrix(nrl, nrh, ncl, nch );
+	V = matrix(nrl, nrh, ncl, nch );
+	P = matrix(nrl, nrh, ncl, nch );
+
+	init_uvp(UI, VI, PI, imax, jmax, U, V, P);
+
+	for (i=0; i<imax; i++){
+			for (j=0; j<jmax; j++){
+				printf("U[%d][%d]=%f\n",i,j,U[i][j]);
+				printf("V[%d][%d]=%f\n",i,j,V[i][j]);
+				printf("P[%d][%d]=%f\n",i,j,P[i][j]);
+			}
+		}
+
+	return 1;
 }
