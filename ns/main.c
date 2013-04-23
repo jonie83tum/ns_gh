@@ -2,6 +2,10 @@
 #include "visual.h"
 #include "init.h"
 #include <stdio.h>
+#include "uvp.h"
+#include "boundary_val.h"
+#include "sor.c"
+/* not possible to include sor.h ??? */
 
 /**
  * The main operation reads the configuration file, initializes the scenario and
@@ -39,35 +43,50 @@
 int main(int argn, char** args) {
 
 	double UI, VI, PI, Re, GX, GY, t_end, xlength, ylength, dt, dx, dy, alpha,
-			omg, tau, eps, dt_value;
-	int imax, jmax, itermax, i, j;
-	double **U, **V, **P;
+			omg, tau, eps, dt_value, t, res;
+	int imax, jmax, itermax, n, it;
+	double **U, **V, **P, **F, **G, **RS;
 	const char *szFileName = args[1];
 	int nrl, nrh, ncl, nch;
-
 
 	read_parameters(szFileName, &Re, &UI, &VI, &PI, &GX, &GY, &t_end, &xlength,
 			&ylength, &dt, &dx, &dy, &imax, &jmax, &alpha, &omg, &tau, &itermax,
 			&eps, &dt_value);
 
-	nrl = 0;
-	nrh = imax+1;
-	ncl = 0;
-	nch = jmax+1;
+	t = 0;
+	n = 0;
 
-	U = matrix(nrl, nrh, ncl, nch );
-	V = matrix(nrl, nrh, ncl, nch );
-	P = matrix(nrl, nrh, ncl, nch );
+	nrl = 0;
+	nrh = imax + 1;
+	ncl = 0;
+	nch = jmax + 1;
+
+	U = matrix(nrl, nrh, ncl, nch);
+	V = matrix(nrl, nrh, ncl, nch);
+	P = matrix(nrl, nrh, ncl, nch);
+	F = matrix(nrl, nrh, ncl, nch);
+	G = matrix(nrl, nrh, ncl, nch);
+	RS = matrix(nrl, nrh, ncl, nch);
 
 	init_uvp(UI, VI, PI, imax, jmax, U, V, P);
 
-	for (i=0; i<imax; i++){
-			for (j=0; j<jmax; j++){
-				printf("U[%d][%d]=%f\n",i,j,U[i][j]);
-				printf("V[%d][%d]=%f\n",i,j,V[i][j]);
-				printf("P[%d][%d]=%f\n",i,j,P[i][j]);
-			}
+	while (t < t_end) {
+		calculate_dt(Re, tau, &dt, dx, dy, imax, jmax, U, V);
+		boundaryvalues(imax, jmax, U, V);
+		calculate_fg(Re, GX, GY, alpha, dt, dx, dy, imax, jmax, U, V, F, G);
+		calculate_rs(dt, dx, dy, imax, jmax, F, G, RS);
+		it = 0;
+		/* set res > eps in order to execute the loop at least once*/
+		res = eps + 1;
+		while (it < itermax && res > eps) {
+			sor(omg, dx, dy, imax, jmax, P, RS, &res);
+			it++;
+			calculate_uv(dt, dx, dy, imax, jmax, U, V, F, G, P);
+			/* output u, v and p for vis */
+			t = t + dt;
+			n++;
 		}
+	}
 
 	return 1;
 }
