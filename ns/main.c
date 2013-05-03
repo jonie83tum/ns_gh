@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include "uvp.h"
 #include "boundary_val.h"
-#include "sor.c"
+#include "sor.h"
 /* not possible to include sor.h ??? */
 
 /**
@@ -48,7 +48,7 @@ int main(int argn, char** args) {
 	double **U, **V, **P, **F, **G, **RS;
 	const char *szFileName = args[1];
 	int nrl, nrh, ncl, nch;
-
+	int itw;
 	read_parameters(szFileName, &Re, &UI, &VI, &PI, &GX, &GY, &t_end, &xlength,
 			&ylength, &dt, &dx, &dy, &imax, &jmax, &alpha, &omg, &tau, &itermax,
 			&eps, &dt_value);
@@ -69,8 +69,9 @@ int main(int argn, char** args) {
 	RS = matrix(nrl, nrh, ncl, nch);
 
 	init_uvp(UI, VI, PI, imax, jmax, U, V, P);
-
+	itw = 0;
 	while (t < t_end) {
+		itw++;
 		calculate_dt(Re, tau, &dt, dx, dy, imax, jmax, U, V);
 		boundaryvalues(imax, jmax, U, V);
 		calculate_fg(Re, GX, GY, alpha, dt, dx, dy, imax, jmax, U, V, F, G);
@@ -81,12 +82,26 @@ int main(int argn, char** args) {
 		while (it < itermax && res > eps) {
 			sor(omg, dx, dy, imax, jmax, P, RS, &res);
 			it++;
-			calculate_uv(dt, dx, dy, imax, jmax, U, V, F, G, P);
-			/* output u, v and p for vis */
-			t = t + dt;
-			n++;
 		}
+		calculate_uv(dt, dx, dy, imax, jmax, U, V, F, G, P);
+		/* output u, v and p for vis */
+		if (itw % 2 != 0) {
+			write_vtkFile(szFileName, n, xlength, ylength, imax, jmax, dx, dy,
+					U, V, P);
+		}
+
+		t = t + dt;
+		n++;
+
 	}
+	printf("U_end=%f\n", U[imax/2][7*jmax/8]);
+
+	free_matrix(U, nrl, nrh, ncl, nch);
+	free_matrix(V, nrl, nrh, ncl, nch);
+	free_matrix(P, nrl, nrh, ncl, nch);
+	free_matrix(F, nrl, nrh, ncl, nch);
+	free_matrix(G, nrl, nrh, ncl, nch);
+	free_matrix(RS, nrl, nrh, ncl, nch);
 
 	return 1;
 }

@@ -12,6 +12,6 @@ void boundaryvalues(int imax, int jmax, double **U, double **V) {
 		V[k][0] = 0;
 		V[k][jmax] = 0;
 		U[k][0] = -U[k][1];
-		U[k][jmax + 1] = -U[k][jmax];
+		U[k][jmax + 1] = 2-U[k][jmax];
 	}
 }
